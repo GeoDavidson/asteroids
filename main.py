@@ -55,6 +55,16 @@ class Player():
         self.center.x += self.velocity.x
         self.center.y += self.velocity.y
 
+        if self.center.x < -32:
+            self.center.x = window.get_width() + 32
+        elif self.center.x > window.get_width() + 32:
+            self.center.x = -32
+
+        if self.center.y < -32:
+            self.center.y = window.get_height() + 32
+        elif self.center.y > window.get_height() + 32:
+            self.center.y = -32
+
         self.actual_pos = [
             pygame.Vector2(self.center.x, self.center.y + 32),
             pygame.Vector2(self.center.x + 16, self.center.y - 24),
