@@ -1,6 +1,7 @@
 import math
 import os
 import sys
+import random
 import time
 
 import pygame
@@ -72,13 +73,39 @@ class Player():
             ]
 
     def draw(self):
-        pygame.draw.polygon(window, (255, 0, 0), self.rotated_triangle)
+        pygame.draw.polygon(window, self.colour, self.rotated_triangle)
 
+
+class Asteroid():
+    def __init__(self, colour, radius, vel_x, vel_y, pos_x, pos_y):
+        self.colour = colour
+        self.radius = radius
+        self.center = pygame.Vector2(pos_x, pos_y)
+        self.velocity = pygame.Vector2(vel_x, vel_y)
+    
+    def update(self, delta_time):
+        self.center.x += self.velocity.x * delta_time
+        self.center.y += self.velocity.y * delta_time
+
+        if self.center.x < -self.radius:
+            self.center.x = window.get_width() + self.radius
+        elif self.center.x > window.get_width() + self.radius:
+            self.center.x = -self.radius
+        
+        if self.center.y < -self.radius:
+            self.center.y = window.get_height() + self.radius
+        elif self.center.y > window.get_height() + self.radius:
+            self.center.y = -self.radius
+
+    def draw(self):
+        pygame.draw.circle(window, self.colour, self.center, self.radius)
 
 def main():
     previous_time = time.time()
 
-    player = Player((255, 0, 0), 0.2, 225, window.get_width() / 2 - 24, window.get_height() / 2 - 24)
+    player = Player((0, 200, 255), 0.2, 225, window.get_width() / 2 - 24, window.get_height() / 2 - 24)
+
+    asteroid = Asteroid((255, 0, 0), random.randint(25, 50), random.randint(-100, 100), random.randint(-100, 100), window.get_width() / 2, window.get_height() / 2)
 
     while True:
         delta_time = time.time() - previous_time
@@ -97,7 +124,9 @@ def main():
         window.fill((217, 244, 200))
 
         player.update(delta_time)
+        asteroid.update(delta_time)
         player.draw()
+        asteroid.draw()
 
         pygame.display.update()
 
