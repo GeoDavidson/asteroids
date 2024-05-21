@@ -31,6 +31,7 @@ class Player():
             pygame.Vector2(self.center.x + 16, self.center.y - 24),
             pygame.Vector2(self.center.x - 16, self.center.y - 24)
             ]
+        self.triangle_pos = [self.actual_pos[0], self.actual_pos[1], self.actual_pos[2]]
 
     def update(self, delta_time):
         key = pygame.key.get_pressed()
@@ -50,7 +51,7 @@ class Player():
         rotated_x3 = (current_x - center_x) * math.cos(math.radians(self.angle)) - (current_y - center_y) * math.sin(math.radians(self.angle)) + center_x
         rotated_y3 = (current_x - center_x) * math.sin(math.radians(self.angle)) + (current_y - center_y) * math.cos(math.radians(self.angle)) + center_y
 
-        self.rotated_triangle = [(rotated_x1, rotated_y1), (rotated_x2, rotated_y2), (rotated_x3, rotated_y3)]
+        self.triangle_pos = [(rotated_x1, rotated_y1), (rotated_x2, rotated_y2), (rotated_x3, rotated_y3)]
 
         if pygame.key.get_pressed()[pygame.K_w]:
                 self.velocity.x += self.speed * math.sin(math.radians(-self.angle)) * delta_time
@@ -76,7 +77,7 @@ class Player():
             ]
 
     def draw(self):
-        pygame.draw.polygon(window, self.colour, self.rotated_triangle)
+        pygame.draw.polygon(window, self.colour, self.triangle_pos)
 
 
 class Asteroid():
@@ -102,7 +103,7 @@ class Asteroid():
 
         for player in player_group:
             for i in range(3):
-                distance = math.sqrt((player.actual_pos[i].x - self.center.x) ** 2 + (player.actual_pos[i].y - self.center.y) ** 2)
+                distance = math.sqrt((player.triangle_pos[i][0] - self.center.x) ** 2 + (player.triangle_pos[i][1] - self.center.y) ** 2)
                 if distance <= self.radius:
                     player_group.pop()
 
@@ -135,12 +136,18 @@ def main():
 
         window.fill((217, 244, 200))
 
+        # update
         for player in player_group:
             player.update(delta_time)
-            player.draw()
 
         for asteroid in asteroid_group:
             asteroid.update(delta_time)
+
+        # draw
+        for player in player_group:
+            player.draw()
+
+        for asteroid in asteroid_group:
             asteroid.draw()
 
         pygame.display.update()
