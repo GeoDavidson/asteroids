@@ -14,6 +14,9 @@ window = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
 pygame.display.set_caption("Asteroids")
 pygame.display.set_icon(pygame.image.load(os.path.join("icon", "icon.png")).convert_alpha())
 
+player_group = []
+asteroid_group = []
+
 
 class Player():
     def __init__(self, colour, speed, rotation_speed, pos_x, pos_y):
@@ -97,6 +100,12 @@ class Asteroid():
         elif self.center.y > window.get_height() + self.radius:
             self.center.y = -self.radius
 
+        for player in player_group:
+            for i in range(3):
+                distance = math.sqrt((player.actual_pos[i].x - self.center.x) ** 2 + (player.actual_pos[i].y - self.center.y) ** 2)
+                if distance <= self.radius:
+                    player_group.pop()
+
     def draw(self):
         pygame.draw.circle(window, self.colour, self.center, self.radius)
 
@@ -104,8 +113,11 @@ def main():
     previous_time = time.time()
 
     player = Player((0, 200, 255), 0.2, 225, window.get_width() / 2 - 24, window.get_height() / 2 - 24)
+    player_group.append(player)
 
-    asteroid = Asteroid((255, 0, 0), random.randint(25, 50), random.randint(-100, 100), random.randint(-100, 100), window.get_width() / 2, window.get_height() / 2)
+    for i in range(3):
+        asteroid = Asteroid((255, 0, 0), random.randint(25, 50), random.randint(-100, 100), random.randint(-100, 100), window.get_width() / 4, window.get_height() / 2)
+        asteroid_group.append(asteroid)
 
     while True:
         delta_time = time.time() - previous_time
@@ -123,10 +135,13 @@ def main():
 
         window.fill((217, 244, 200))
 
-        player.update(delta_time)
-        asteroid.update(delta_time)
-        player.draw()
-        asteroid.draw()
+        for player in player_group:
+            player.update(delta_time)
+            player.draw()
+
+        for asteroid in asteroid_group:
+            asteroid.update(delta_time)
+            asteroid.draw()
 
         pygame.display.update()
 
