@@ -77,7 +77,7 @@ class Player():
             ]
 
     def draw(self):
-        pygame.draw.polygon(window, self.colour, self.triangle_pos)
+        pygame.draw.polygon(window, self.colour, self.triangle_pos, 4)
 
 
 class Asteroid():
@@ -108,7 +108,7 @@ class Asteroid():
                     player_group.pop()
 
     def draw(self):
-        pygame.draw.circle(window, self.colour, self.center, self.radius)
+        pygame.draw.circle(window, self.colour, self.center, self.radius, 4)
 
 def main():
     previous_time = time.time()
