@@ -56,11 +56,11 @@ class Player():
         self.triangle_pos = [(rotated_x1, rotated_y1), (rotated_x2, rotated_y2), (rotated_x3, rotated_y3)]
 
         if pygame.key.get_pressed()[pygame.K_w]:
-            if abs(self.velocity.x) < 0.1:
+            if abs(self.velocity.x) < 0.25:
                 self.velocity.x += self.speed * math.sin(math.radians(-self.angle)) * delta_time
             else:
                 self.velocity.x -= math.sin(math.radians(-self.angle)) * delta_time
-            if abs(self.velocity.y) < 0.1:
+            if abs(self.velocity.y) < 0.25:
                 self.velocity.y += self.speed * math.cos(math.radians(self.angle)) * delta_time
             else:
                 self.velocity.y -= math.cos(math.radians(self.angle)) * delta_time
@@ -96,9 +96,10 @@ class Player():
 
 
 class Asteroid():
-    def __init__(self, colour, radius, vel_x, vel_y, pos_x, pos_y):
+    def __init__(self, colour, stage, vel_x, vel_y, pos_x, pos_y):
         self.colour = colour
-        self.radius = radius
+        self.stage = stage
+        self.radius = self.stage * 20
         self.center = pygame.Vector2(pos_x, pos_y)
         self.velocity = pygame.Vector2(vel_x, vel_y)
     
@@ -121,7 +122,6 @@ class Asteroid():
                 distance = math.sqrt((player.triangle_pos[i][0] - self.center.x) ** 2 + (player.triangle_pos[i][1] - self.center.y) ** 2)
                 if distance <= self.radius:
                     player_group.pop()
-                    
 
     def draw(self):
         pygame.draw.circle(window, self.colour, self.center, self.radius, 4)
@@ -140,6 +140,19 @@ class Bullet():
         self.rect.x = self.rect_pos.x
         self.rect.y = self.rect_pos.y
 
+        for asteroid in asteroid_group:
+            distance = math.sqrt((asteroid.center.x - self.rect.x) ** 2 + (asteroid.center.y - self.rect.y) ** 2)
+            if distance <= asteroid.radius:
+                bullet_group.remove(self)
+                if asteroid.stage == 3:
+                    asteroid_group.append(Asteroid((234, 0, 0), 2, asteroid.velocity.x + random.randint(-100, 100), asteroid.velocity.y + random.randint(-100, 100), asteroid.center.x, asteroid.center.y))
+                    asteroid_group.append(Asteroid((234, 0, 0), 2,asteroid.velocity.x + random.randint(-100, 100), asteroid.velocity.y + random.randint(-100, 100), asteroid.center.x, asteroid.center.y))
+                elif asteroid.stage == 2:
+                    asteroid_group.append(Asteroid((234, 0, 0), 1,asteroid.velocity.x + random.randint(-100, 100), asteroid.velocity.y + random.randint(-100, 100), asteroid.center.x, asteroid.center.y))
+                    asteroid_group.append(Asteroid((234, 0, 0), 1,asteroid.velocity.x + random.randint(-100, 100), asteroid.velocity.y + random.randint(-100, 100), asteroid.center.x, asteroid.center.y))
+                asteroid_group.remove(asteroid)
+
+
     def draw(self):
         pygame.draw.rect(window, self.colour, self.rect, 0, 4)
 
@@ -150,7 +163,7 @@ def main():
     player_group.append(player)
 
     for i in range(3):
-        asteroid = Asteroid((234, 0, 0), random.randint(25, 50), random.randint(-100, 100), random.randint(-100, 100), window.get_width() / 4, window.get_height() / 2)
+        asteroid = Asteroid((234, 0, 0), 3, random.randint(-100, 100), random.randint(-100, 100), window.get_width() / 4, window.get_height() / 2)
         asteroid_group.append(asteroid)
 
     while True:
