@@ -16,6 +16,7 @@ pygame.display.set_icon(pygame.image.load(os.path.join("icon", "icon.png")).conv
 
 player_group = []
 asteroid_group = []
+bullet_group = []
 
 
 class Player():
@@ -32,6 +33,7 @@ class Player():
             pygame.Vector2(self.center.x - 16, self.center.y - 24)
             ]
         self.triangle_pos = [self.actual_pos[0], self.actual_pos[1], self.actual_pos[2]]
+        self.shot = False
 
     def update(self, delta_time):
         key = pygame.key.get_pressed()
@@ -54,8 +56,14 @@ class Player():
         self.triangle_pos = [(rotated_x1, rotated_y1), (rotated_x2, rotated_y2), (rotated_x3, rotated_y3)]
 
         if pygame.key.get_pressed()[pygame.K_w]:
+            if abs(self.velocity.x) < 0.1:
                 self.velocity.x += self.speed * math.sin(math.radians(-self.angle)) * delta_time
+            else:
+                self.velocity.x -= math.sin(math.radians(-self.angle)) * delta_time
+            if abs(self.velocity.y) < 0.1:
                 self.velocity.y += self.speed * math.cos(math.radians(self.angle)) * delta_time
+            else:
+                self.velocity.y -= math.cos(math.radians(self.angle)) * delta_time
 
         self.center.x += self.velocity.x
         self.center.y += self.velocity.y
@@ -75,6 +83,13 @@ class Player():
             pygame.Vector2(self.center.x + 16, self.center.y - 24),
             pygame.Vector2(self.center.x - 16, self.center.y - 24)
             ]
+        
+        if pygame.key.get_pressed()[pygame.K_SPACE]:
+            if not self.shot:
+                bullet_group.append(Bullet((0, 140, 0), 6, 400, self.triangle_pos[0][0] - 3, self.triangle_pos[0][1] - 3, math.radians(self.angle)))
+                self.shot = True
+        else:
+            self.shot = False
 
     def draw(self):
         pygame.draw.polygon(window, self.colour, self.triangle_pos, 4)
@@ -106,9 +121,27 @@ class Asteroid():
                 distance = math.sqrt((player.triangle_pos[i][0] - self.center.x) ** 2 + (player.triangle_pos[i][1] - self.center.y) ** 2)
                 if distance <= self.radius:
                     player_group.pop()
+                    
 
     def draw(self):
         pygame.draw.circle(window, self.colour, self.center, self.radius, 4)
+
+class Bullet():
+    def __init__(self, colour, size, speed, start_x, start_y, angle):
+        self.colour = colour
+        self.rect = pygame.Rect(start_x, start_y, size, size)
+        self.delta_y = math.cos(-angle) * speed
+        self.delta_x = math.sin(-angle) * speed
+        self.rect_pos = pygame.Vector2(start_x, start_y)
+
+    def update(self, delta_time):
+        self.rect_pos.x += self.delta_x * delta_time
+        self.rect_pos.y += self.delta_y * delta_time
+        self.rect.x = self.rect_pos.x
+        self.rect.y = self.rect_pos.y
+
+    def draw(self):
+        pygame.draw.rect(window, self.colour, self.rect, 0, 4)
 
 def main():
     previous_time = time.time()
@@ -117,7 +150,7 @@ def main():
     player_group.append(player)
 
     for i in range(3):
-        asteroid = Asteroid((255, 0, 0), random.randint(25, 50), random.randint(-100, 100), random.randint(-100, 100), window.get_width() / 4, window.get_height() / 2)
+        asteroid = Asteroid((234, 0, 0), random.randint(25, 50), random.randint(-100, 100), random.randint(-100, 100), window.get_width() / 4, window.get_height() / 2)
         asteroid_group.append(asteroid)
 
     while True:
@@ -142,6 +175,9 @@ def main():
 
         for asteroid in asteroid_group:
             asteroid.update(delta_time)
+        
+        for bullet in bullet_group:
+            bullet.update(delta_time)
 
         # draw
         for player in player_group:
@@ -149,6 +185,9 @@ def main():
 
         for asteroid in asteroid_group:
             asteroid.draw()
+
+        for bullet in bullet_group:
+            bullet.draw()
 
         pygame.display.update()
 
