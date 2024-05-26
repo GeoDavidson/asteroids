@@ -20,9 +20,10 @@ bullet_group = []
 
 
 class Player():
-    def __init__(self, colour, speed, rotation_speed, pos_x, pos_y):
+    def __init__(self, colour, speed, max_speed, rotation_speed, pos_x, pos_y):
         self.colour = colour
         self.speed = speed
+        self.max_speed = max_speed
         self.rotation_speed = rotation_speed
         self.center = pygame.Vector2(pos_x, pos_y)
         self.velocity = pygame.Vector2(0, 0)
@@ -57,11 +58,11 @@ class Player():
 
     def __movement(self, delta_time):
         if pygame.key.get_pressed()[pygame.K_UP]:
-            if abs(self.velocity.x) < 0.25:
+            if abs(self.velocity.x) < self.max_speed:
                 self.velocity.x += self.speed * math.sin(math.radians(-self.angle)) * delta_time
             else:
                 self.velocity.x -= math.sin(math.radians(-self.angle)) * delta_time
-            if abs(self.velocity.y) < 0.25:
+            if abs(self.velocity.y) < self.max_speed:
                 self.velocity.y += self.speed * math.cos(math.radians(self.angle)) * delta_time
             else:
                 self.velocity.y -= math.cos(math.radians(self.angle)) * delta_time
@@ -89,7 +90,7 @@ class Player():
     def __shoot(self):
         if pygame.key.get_pressed()[pygame.K_SPACE]:
             if not self.shot:
-                bullet_group.append(Bullet((0, 140, 0), 4, 0.8, 490, self.rotated_pos[0][0], self.rotated_pos[0][1], math.radians(self.angle)))
+                bullet_group.append(Bullet((0, 140, 0), 4, 0.8, 550, self.rotated_pos[0][0], self.rotated_pos[0][1], math.radians(self.angle)))
                 self.shot = True
         else:
             self.shot = False
@@ -180,6 +181,7 @@ def player_asteroid_collision():
                 distance = math.sqrt((player.rotated_pos[i][0] - asteroid.center.x) ** 2 + (player.rotated_pos[i][1] - asteroid.center.y) ** 2)
                 if distance <= asteroid.radius:
                     player_group.pop()
+                    break
 
 
 def bullet_asteroid_collision():
@@ -195,10 +197,11 @@ def bullet_asteroid_collision():
                     asteroid_group.append(Asteroid((234, 0, 0), 1, asteroid.velocity.x + random.randint(-100, 100), asteroid.velocity.y + random.randint(-100, 100), asteroid.center.x, asteroid.center.y))
                     asteroid_group.append(Asteroid((234, 0, 0), 1, asteroid.velocity.x + random.randint(-100, 100), asteroid.velocity.y + random.randint(-100, 100), asteroid.center.x, asteroid.center.y))
                 asteroid_group.remove(asteroid)
+                break
 
 
 def main():
-    player_group.append(Player((0, 200, 255), 0.2, 225, window.get_width() / 2 - 24, window.get_height() / 2 - 24))
+    player_group.append(Player((0, 200, 255), 0.1, 0.2, 250, window.get_width() / 2 - 24, window.get_height() / 2 - 24))
 
     asteroid_group.append(Asteroid((234, 0, 0), 3, random.randint(-100, 100), random.randint(-100, 100), 0, 0))
     asteroid_group.append(Asteroid((234, 0, 0), 2, random.randint(-100, 100), random.randint(-100, 100), window.get_width(), 0))
