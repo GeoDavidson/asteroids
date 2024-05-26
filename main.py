@@ -1,7 +1,7 @@
 import math
 import os
-import sys
 import random
+import sys
 import time
 
 import pygame
@@ -24,22 +24,22 @@ class Player():
         self.colour = colour
         self.speed = speed
         self.rotation_speed = rotation_speed
-        self.angle = 0
-        self.velocity = pygame.Vector2(0, 0)
         self.center = pygame.Vector2(pos_x, pos_y)
+        self.velocity = pygame.Vector2(0, 0)
         self.actual_pos = [
             pygame.Vector2(self.center.x, self.center.y + 32),
             pygame.Vector2(self.center.x + 16, self.center.y - 24),
             pygame.Vector2(self.center.x - 16, self.center.y - 24)
-            ]
-        self.triangle_pos = [self.actual_pos[0], self.actual_pos[1], self.actual_pos[2]]
+        ]
+        self.rotated_pos = [self.actual_pos[0], self.actual_pos[1], self.actual_pos[2]]
+        self.angle = 0
         self.shot = False
 
-    def update(self, delta_time):
+    def __rotation(self, delta_time):
         key = pygame.key.get_pressed()
-        if key[pygame.K_a]:
+        if key[pygame.K_RIGHT]:
             self.angle += self.rotation_speed * delta_time
-        elif key[pygame.K_d]:
+        elif key[pygame.K_LEFT]:
             self.angle -= self.rotation_speed * delta_time
 
         center_x, center_y = self.center.xy
@@ -53,9 +53,10 @@ class Player():
         rotated_x3 = (current_x - center_x) * math.cos(math.radians(self.angle)) - (current_y - center_y) * math.sin(math.radians(self.angle)) + center_x
         rotated_y3 = (current_x - center_x) * math.sin(math.radians(self.angle)) + (current_y - center_y) * math.cos(math.radians(self.angle)) + center_y
 
-        self.triangle_pos = [(rotated_x1, rotated_y1), (rotated_x2, rotated_y2), (rotated_x3, rotated_y3)]
+        self.rotated_pos = [(rotated_x1, rotated_y1), (rotated_x2, rotated_y2), (rotated_x3, rotated_y3)]
 
-        if pygame.key.get_pressed()[pygame.K_w]:
+    def __movement(self, delta_time):
+        if pygame.key.get_pressed()[pygame.K_UP]:
             if abs(self.velocity.x) < 0.25:
                 self.velocity.x += self.speed * math.sin(math.radians(-self.angle)) * delta_time
             else:
@@ -68,6 +69,13 @@ class Player():
         self.center.x += self.velocity.x
         self.center.y += self.velocity.y
 
+        self.actual_pos = [
+            pygame.Vector2(self.center.x, self.center.y + 32),
+            pygame.Vector2(self.center.x + 16, self.center.y - 24),
+            pygame.Vector2(self.center.x - 16, self.center.y - 24)
+        ]
+
+    def __collision(self):
         if self.center.x < -32:
             self.center.x = window.get_width() + 32
         elif self.center.x > window.get_width() + 32:
@@ -78,21 +86,22 @@ class Player():
         elif self.center.y > window.get_height() + 32:
             self.center.y = -32
 
-        self.actual_pos = [
-            pygame.Vector2(self.center.x, self.center.y + 32),
-            pygame.Vector2(self.center.x + 16, self.center.y - 24),
-            pygame.Vector2(self.center.x - 16, self.center.y - 24)
-            ]
-        
+    def __shoot(self):
         if pygame.key.get_pressed()[pygame.K_SPACE]:
             if not self.shot:
-                bullet_group.append(Bullet((0, 140, 0), 6, 475, 0.8, self.triangle_pos[0][0] - 3, self.triangle_pos[0][1] - 3, math.radians(self.angle)))
+                bullet_group.append(Bullet((0, 140, 0), 4, 0.8, 490, self.rotated_pos[0][0], self.rotated_pos[0][1], math.radians(self.angle)))
                 self.shot = True
         else:
             self.shot = False
 
+    def update(self, delta_time):
+        self.__rotation(delta_time)
+        self.__movement(delta_time)
+        self.__collision()
+        self.__shoot()
+
     def draw(self):
-        pygame.draw.polygon(window, self.colour, self.triangle_pos, 4)
+        pygame.draw.polygon(window, self.colour, self.rotated_pos, 4)
 
 
 class Asteroid():
@@ -102,86 +111,101 @@ class Asteroid():
         self.radius = self.stage * 20
         self.center = pygame.Vector2(pos_x, pos_y)
         self.velocity = pygame.Vector2(vel_x, vel_y)
-    
-    def update(self, delta_time):
+
+    def __movement(self, delta_time):
         self.center.x += self.velocity.x * delta_time
         self.center.y += self.velocity.y * delta_time
 
+    def __collision(self):
         if self.center.x < -self.radius:
             self.center.x = window.get_width() + self.radius
         elif self.center.x > window.get_width() + self.radius:
             self.center.x = -self.radius
-        
+
         if self.center.y < -self.radius:
             self.center.y = window.get_height() + self.radius
         elif self.center.y > window.get_height() + self.radius:
             self.center.y = -self.radius
 
-        for player in player_group:
-            for i in range(3):
-                distance = math.sqrt((player.triangle_pos[i][0] - self.center.x) ** 2 + (player.triangle_pos[i][1] - self.center.y) ** 2)
-                if distance <= self.radius:
-                    player_group.pop()
+    def update(self, delta_time):
+        self.__movement(delta_time)
+        self.__collision()
 
     def draw(self):
         pygame.draw.circle(window, self.colour, self.center, self.radius, 4)
 
+
 class Bullet():
-    def __init__(self, colour, size, speed, alive_time, start_x, start_y, angle):
+    def __init__(self, colour, radius, alive_time, speed, start_x, start_y, angle):
         self.colour = colour
+        self.radius = radius
         self.alive_time = alive_time
-        self.size = size
-        self.rect = pygame.Rect(start_x, start_y, size, size)
+        self.center = pygame.Vector2(start_x, start_y)
         self.delta_y = math.cos(-angle) * speed
         self.delta_x = math.sin(-angle) * speed
-        self.rect_pos = pygame.Vector2(start_x, start_y)
-        self.dead = False
 
-    def update(self, delta_time):
-        self.rect_pos.x += self.delta_x * delta_time
-        self.rect_pos.y += self.delta_y * delta_time
-        self.rect.x = self.rect_pos.x
-        self.rect.y = self.rect_pos.y
+    def __movement(self, delta_time):
+        self.center.x += self.delta_x * delta_time
+        self.center.y += self.delta_y * delta_time
 
-        if self.rect_pos.x < -self.size:
-            self.rect_pos.x = window.get_width()
-        elif self.rect_pos.x > window.get_width():
-            self.rect_pos.x = -self.size
+    def __collision(self):
+        if self.center.x < -self.radius:
+            self.center.x = window.get_width() + self.radius
+        elif self.center.x > window.get_width() + self.radius:
+            self.center.x = -self.radius
 
-        if self.rect_pos.y < -self.size:
-            self.rect_pos.y = window.get_height()
-        elif self.rect_pos.y > window.get_height():
-            self.rect_pos.y = -self.size
+        if self.center.y < -self.radius:
+            self.center.y = window.get_height() + self.radius
+        elif self.center.y > window.get_height() + self.radius:
+            self.center.y = -self.radius
 
-        for asteroid in asteroid_group:
-            distance = math.sqrt((asteroid.center.x - self.rect.x) ** 2 + (asteroid.center.y - self.rect.y) ** 2)
-            if distance <= asteroid.radius:
-                bullet_group.remove(self)
-                self.dead = True
-                if asteroid.stage == 3:
-                    asteroid_group.append(Asteroid((234, 0, 0), 2, asteroid.velocity.x + random.randint(-100, 100), asteroid.velocity.y + random.randint(-100, 100), asteroid.center.x, asteroid.center.y))
-                    asteroid_group.append(Asteroid((234, 0, 0), 2,asteroid.velocity.x + random.randint(-100, 100), asteroid.velocity.y + random.randint(-100, 100), asteroid.center.x, asteroid.center.y))
-                elif asteroid.stage == 2:
-                    asteroid_group.append(Asteroid((234, 0, 0), 1,asteroid.velocity.x + random.randint(-100, 100), asteroid.velocity.y + random.randint(-100, 100), asteroid.center.x, asteroid.center.y))
-                    asteroid_group.append(Asteroid((234, 0, 0), 1,asteroid.velocity.x + random.randint(-100, 100), asteroid.velocity.y + random.randint(-100, 100), asteroid.center.x, asteroid.center.y))
-                asteroid_group.remove(asteroid)
-
+    def __suicide(self, delta_time):
         self.alive_time -= delta_time
-        if self.alive_time <= 0 and not self.dead:
+        if self.alive_time <= 0:
             bullet_group.remove(self)
 
+    def update(self, delta_time):
+        self.__movement(delta_time)
+        self.__collision()
+        self.__suicide(delta_time)
+
     def draw(self):
-        pygame.draw.rect(window, self.colour, self.rect, 0, 4)
+        pygame.draw.circle(window, self.colour, self.center, self.radius)
+
+
+def player_asteroid_collision():
+    for player in player_group:
+        for asteroid in asteroid_group:
+            for i in range(3):
+                distance = math.sqrt((player.rotated_pos[i][0] - asteroid.center.x) ** 2 + (player.rotated_pos[i][1] - asteroid.center.y) ** 2)
+                if distance <= asteroid.radius:
+                    player_group.pop()
+
+
+def bullet_asteroid_collision():
+    for bullet in bullet_group:
+        for asteroid in asteroid_group:
+            distance = math.sqrt((bullet.center.x - asteroid.center.x) ** 2 + (bullet.center.y - asteroid.center.y) ** 2)
+            if distance <= asteroid.radius:
+                bullet_group.remove(bullet)
+                if asteroid.stage == 3:
+                    asteroid_group.append(Asteroid((234, 0, 0), 2, asteroid.velocity.x + random.randint(-100, 100), asteroid.velocity.y + random.randint(-100, 100), asteroid.center.x, asteroid.center.y))
+                    asteroid_group.append(Asteroid((234, 0, 0), 2, asteroid.velocity.x + random.randint(-100, 100), asteroid.velocity.y + random.randint(-100, 100), asteroid.center.x, asteroid.center.y))
+                elif asteroid.stage == 2:
+                    asteroid_group.append(Asteroid((234, 0, 0), 1, asteroid.velocity.x + random.randint(-100, 100), asteroid.velocity.y + random.randint(-100, 100), asteroid.center.x, asteroid.center.y))
+                    asteroid_group.append(Asteroid((234, 0, 0), 1, asteroid.velocity.x + random.randint(-100, 100), asteroid.velocity.y + random.randint(-100, 100), asteroid.center.x, asteroid.center.y))
+                asteroid_group.remove(asteroid)
+
 
 def main():
+    player_group.append(Player((0, 200, 255), 0.2, 225, window.get_width() / 2 - 24, window.get_height() / 2 - 24))
+
+    asteroid_group.append(Asteroid((234, 0, 0), 3, random.randint(-100, 100), random.randint(-100, 100), 0, 0))
+    asteroid_group.append(Asteroid((234, 0, 0), 2, random.randint(-100, 100), random.randint(-100, 100), window.get_width(), 0))
+    asteroid_group.append(Asteroid((234, 0, 0), 2, random.randint(-100, 100), random.randint(-100, 100), window.get_width(), window.get_height()))
+    asteroid_group.append(Asteroid((234, 0, 0), 1, random.randint(-100, 100), random.randint(-100, 100), 0, window.get_height()))
+
     previous_time = time.time()
-
-    player = Player((0, 200, 255), 0.2, 225, window.get_width() / 2 - 24, window.get_height() / 2 - 24)
-    player_group.append(player)
-
-    for i in range(3):
-        asteroid = Asteroid((234, 0, 0), 3, random.randint(-100, 100), random.randint(-100, 100), window.get_width() / 4, window.get_height() / 2)
-        asteroid_group.append(asteroid)
 
     while True:
         delta_time = time.time() - previous_time
@@ -205,9 +229,13 @@ def main():
 
         for asteroid in asteroid_group:
             asteroid.update(delta_time)
-        
+
+        player_asteroid_collision()
+
         for bullet in bullet_group:
             bullet.update(delta_time)
+
+        bullet_asteroid_collision()
 
         # draw
         for player in player_group:
