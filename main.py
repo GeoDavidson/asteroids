@@ -14,6 +14,8 @@ window = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
 pygame.display.set_caption("Asteroids")
 pygame.display.set_icon(pygame.image.load(os.path.join("icon", "icon.png")).convert_alpha())
 
+font = pygame.font.Font(os.path.join("font", "chakrapetch-regular.ttf"), 48)
+
 player_group = []
 asteroid_group = []
 bullet_group = []
@@ -174,17 +176,18 @@ class Bullet():
         pygame.draw.circle(window, self.colour, self.center, self.radius)
 
 
-def player_asteroid_collision():
+def player_asteroid_collision(score):
     for player in player_group:
         for asteroid in asteroid_group:
             for i in range(3):
                 distance = math.sqrt((player.rotated_pos[i][0] - asteroid.center.x) ** 2 + (player.rotated_pos[i][1] - asteroid.center.y) ** 2)
                 if distance <= asteroid.radius:
                     player_group.pop()
-                    break
+                    return 0
+    return score
 
 
-def bullet_asteroid_collision():
+def bullet_asteroid_collision(score):
     for bullet in bullet_group:
         for asteroid in asteroid_group:
             distance = math.sqrt((bullet.center.x - asteroid.center.x) ** 2 + (bullet.center.y - asteroid.center.y) ** 2)
@@ -193,20 +196,25 @@ def bullet_asteroid_collision():
                 if asteroid.stage == 3:
                     asteroid_group.append(Asteroid((234, 0, 0), 2, asteroid.velocity.x + random.randint(-100, 100), asteroid.velocity.y + random.randint(-100, 100), asteroid.center.x, asteroid.center.y))
                     asteroid_group.append(Asteroid((234, 0, 0), 2, asteroid.velocity.x + random.randint(-100, 100), asteroid.velocity.y + random.randint(-100, 100), asteroid.center.x, asteroid.center.y))
+                    asteroid_group.remove(asteroid)
+                    return score + 20
                 elif asteroid.stage == 2:
                     asteroid_group.append(Asteroid((234, 0, 0), 1, asteroid.velocity.x + random.randint(-100, 100), asteroid.velocity.y + random.randint(-100, 100), asteroid.center.x, asteroid.center.y))
                     asteroid_group.append(Asteroid((234, 0, 0), 1, asteroid.velocity.x + random.randint(-100, 100), asteroid.velocity.y + random.randint(-100, 100), asteroid.center.x, asteroid.center.y))
+                    asteroid_group.remove(asteroid)
+                    return score + 50
                 asteroid_group.remove(asteroid)
-                break
+                return score + 100
+    return score
 
 
 def main():
-    player_group.append(Player((0, 200, 255), 0.1, 0.2, 250, window.get_width() / 2 - 24, window.get_height() / 2 - 24))
+    player_group.append(Player((0, 200, 255), 0.15, 0.2, 250, window.get_width() / 2 - 24, window.get_height() / 2 - 24))
 
-    asteroid_group.append(Asteroid((234, 0, 0), 3, random.randint(-100, 100), random.randint(-100, 100), 0, 0))
-    asteroid_group.append(Asteroid((234, 0, 0), 2, random.randint(-100, 100), random.randint(-100, 100), window.get_width(), 0))
-    asteroid_group.append(Asteroid((234, 0, 0), 2, random.randint(-100, 100), random.randint(-100, 100), window.get_width(), window.get_height()))
-    asteroid_group.append(Asteroid((234, 0, 0), 1, random.randint(-100, 100), random.randint(-100, 100), 0, window.get_height()))
+    score = 0
+    score_text = font.render(f"{score}", True, (255, 0, 255))
+    score_rect = score_text.get_rect()
+    score_rect.topleft = (12, 4)
 
     previous_time = time.time()
 
@@ -233,12 +241,18 @@ def main():
         for asteroid in asteroid_group:
             asteroid.update(delta_time)
 
-        player_asteroid_collision()
-
         for bullet in bullet_group:
             bullet.update(delta_time)
 
-        bullet_asteroid_collision()
+        score = player_asteroid_collision(score)
+
+        score = bullet_asteroid_collision(score)
+
+        if len(asteroid_group) == 0:
+            asteroid_group.append(Asteroid((234, 0, 0), 3, random.randint(-100, 100), random.randint(-100, 100), 0, 0))
+            asteroid_group.append(Asteroid((234, 0, 0), 2, random.randint(-100, 100), random.randint(-100, 100), window.get_width(), 0))
+            asteroid_group.append(Asteroid((234, 0, 0), 2, random.randint(-100, 100), random.randint(-100, 100), window.get_width(), window.get_height()))
+            asteroid_group.append(Asteroid((234, 0, 0), 1, random.randint(-100, 100), random.randint(-100, 100), 0, window.get_height()))
 
         # draw
         for player in player_group:
@@ -249,6 +263,9 @@ def main():
 
         for bullet in bullet_group:
             bullet.draw()
+
+        score_text = font.render(f"{score}", True, (255, 0, 255))
+        window.blit(score_text, score_rect)
 
         pygame.display.update()
 
